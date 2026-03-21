@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Osiris Web Radar</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { background: #111; color: #fff; font-family: sans-serif; text-align: center; margin: 0; padding: 20px;}
+        #radar { position: relative; width: 1024px; height: 1024px; margin: 0 auto; background-color: #222; background-repeat: no-repeat; background-size: cover; border: 2px solid #555; border-radius: 8px; overflow: hidden; }
+        .dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); border: 1px solid #000; z-index: 5; }
+        .enemy { background: red; }
+        .team { background: #00BFFF; }
+        .local { background: lime; width: 14px; height: 14px; z-index: 10; border: 2px solid #fff;}
+        .controls { padding: 10px; background: #222; border-radius: 8px; max-width: 1024px; margin: 0 auto 10px; display: flex; justify-content: center; align-items: center; gap: 20px;}
+        .title { margin: 0; color: #00ffca; }
+        #currentMap { font-weight: bold; font-size: 20px; color: yellow; }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <h2 class="title">Osiris Real-time Radar [0 Latency]</h2>
+        <span id="currentMap">Waiting for map...</span>
+    </div>
+    <div id="radar"></div>
+
+    <script>
+        const socket = io();
+        const radar = document.getElementById('radar');
+        const mapLabel = document.getElementById('currentMap');
+        
+        // Harita verileri
+        const mapDataMap = {
+            'de_dust2': {scale: 4.4, x: -2476, y: 3239},
+            'de_mirage': {scale: 5.0, x: -3217, y: 1713},
+            'de_inferno': {scale: 4.9, x: -2087, y: 3870},
+            'de_nuke': {scale: 7.0, x: -3453, y: 2887},
+            'de_overpass': {scale: 5.2, x: -4831, y: 1781},
+            'de_vertigo': {scale: 4.0, x: -3168, y: 1762},
+            'de_ancient': {scale: 5.0, x: -2953, y: 2164},
+            'de_anubis': {scale: 5.22, x: -2796, y: 3328},
+            'cs_office': {scale: 4.1, x: -1838, y: 1858},
+            'cs_italy': {scale: 4.6, x: -2647, y: 2592}
+        };
+
+        let currentMapName = '';
+        let mapScale = 4.4;
+        let mapX = -2476;
+        let mapY = 3239;
+
+        socket.on('radarUpdate', (data) => {
+            // Harita otomatik güncellensin
+            if (data.mapName && data.mapName !== currentMapName) {
+                currentMapName = data.mapName;
+                mapLabel.innerText = "Current Map: " + currentMapName.toUpperCase();
+                radar.style.backgroundImage = "url('/maps/" + currentMapName + ".png')";
+                
+                if (mapDataMap[currentMapName]) {
+                    mapScale = mapDataMap[currentMapName].scale;
+                    mapX = mapDataMap[currentMapName].x;
+                    mapY = mapDataMap[currentMapName].y;
+                }
+            }
+
+            // Düşmanları çiz
+            radar.innerHTML = '';
+            (data.players || []).forEach(p => {
+                let pxStr = ((p.x - mapX) / mapScale);
+                let pyStr = ((mapY - p.y) / mapScale);
+
+                if (pxStr >= 0 && pxStr <= 1024 && pyStr >= 0 && pyStr <= 1024) {
+                    var dot = document.createElement('div');
+                    dot.className = 'dot ' + (p.isLocal ? 'local' : (p.isEnemy ? 'enemy' : 'team'));
+                    dot.style.left = pxStr + 'px';
+                    dot.style.top = pyStr + 'px';
+                    radar.appendChild(dot);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

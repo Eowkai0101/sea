@@ -9,13 +9,13 @@ app.use(express.json());
 
 // Bellekte tutulan anlık radar verisi
 let currentRadarData = {
-    mapName: "de_dust2",
+    mapName: "",
     players: []
 };
 
 // Hileden gelen veriyi (C++ POST isteği) alıp Web arayüzüne (Socket.IO) gönder
 app.post('/update', (req, res) => {
-    if (req.body && req.body.mapName) {
+    if (req.body && req.body.mapName !== undefined) {
         currentRadarData.mapName = req.body.mapName;
         currentRadarData.players = req.body.players || [];
         
